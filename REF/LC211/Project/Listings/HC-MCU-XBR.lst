@@ -1,0 +1,1393 @@
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE HC_MCU_XBR
+OBJECT MODULE PLACED IN .\Objects\HC-MCU-XBR.obj
+COMPILER INVOKED BY: C:\Keil4\C51\BIN\C51.EXE ..\User\HC-MCU-XBR.c BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\HC-MCU-XBR
+                    -.lst) TABS(2) OBJECT(.\Objects\HC-MCU-XBR.obj)
+
+line level    source
+
+   1          #define ALLOCATE_EXTERN
+   2          #include "HC89S003F4.h"
+   3          
+   4          ////ÀÛ¼Æ²ÉÑù9600´Îºó½øÐÐÅÐ¶Ï£¬ºÄÊ±250ms
+   5          ////´®¿Ú²¨ÌØÂÊ57600
+   6          
+   7          #define  VERSION  0X21
+   8          
+   9          #define  TH_LOW   30000
+  10          #define  TH_HIGH  3000000
+  11          
+  12          #define  TH_DEF   60000
+  13            
+  14          //ÔÊÐíÔëÉùÖµÆ«²î·¶Î§
+  15          #define  MAX_DELTA0  20000
+  16          #define  MAX_DELTA1  80000
+  17          
+  18          #define  MAX_DELAY  1800
+  19          //×î´óÑÓÊ±ÃëÊý
+  20          
+  21          //¸Ð¹âÃÅÏÞ-30¶ÔÓ¦8LUX×óÓÒµÄADÖµ,ÉèÖÃÎª255±íÊ¾²»¼ì²â¸Ð¹â
+  22          #define  LIGHT_TH0 255
+  23          //30
+  24          
+  25          //Ò»¸ö¼ì²âÖÜÆÚÎª0.25Ãë
+  26          //#define DELAY_NUM 20
+  27          
+  28          #define LIGHT_ON P0_6=1
+  29          #define LIGHT_OFF P0_6=0
+  30          
+  31          //void Delay_2us(u16 Cnt);    //ÑÓÊ±º¯Êý
+  32          
+  33          // bit Timer1_FLAG;
+  34          // bit Time_10mS_FLAG;
+  35          // bit Time_100mS_FLAG;
+  36          // bit Time_200mS_FLAG;
+  37          // bit Time_500mS_FLAG;
+  38          // bit Time_1S_FLAG;
+  39          // bit Time_10S_FLAG;
+  40          // bit Time_1Min_FLAG;
+  41          // bit Time_1H_FLAG;
+  42          
+  43          ulong Timer_Counter=0;
+  44          
+  45           //u8 Uart1_RX_Buff[10] = {0};           //ÓÃÓÚ´æ·ÅUART1½ÓÊÕÊý¾Ý
+  46           //u8 Uart1_RX_Cnt = 0;                //UART1½ÓÊÕ¼ÆÊý
+  47           //u8 Uart1_TX_Buff[20] = {0};           //ÓÃÓÚ´æ·ÅUART1·¢ËÍÊý¾Ý
+  48           //u8 Uart1_TX_Cnt = 0;                //UART1·¢ËÍ¼ÆÊý
+  49           
+  50          // u16 AN1_Data = 0;
+  51          // u16 AN7_Data = 0;
+  52          // u8 Uart_Cnt = 0;
+  53          
+  54          
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 2   
+
+  55            u8 SUM1_counter=0,SUM1_num=64,SUM0_num=12;
+  56            ulong SUM1=0,SUM0=0,SUM=0,ALL_SUM1=0,SUM10=0,SUM16=0,SUM01,SUM2;
+  57            u16 k,times=0,start_times=1;
+  58            ulong TH,MAX_DELTA;
+  59            u8 alarm_times=0,stop_times=0;
+  60          
+  61            uint average,t,LIGHT=0;
+  62            u8 light_ad,light_ad0,check_light_times=8,calc_average_times=0,check_sum,send_byte;
+  63            u8 LIGHT_TH;
+  64            u16 DELAY_NUM;
+  65            
+  66            u8 RXnum=0,TXdata[15],RXdata[7];
+  67            
+  68           
+  69          void Flash_EraseBlock(unsigned int fui_Address);//ÉÈÇø²Á³ý
+  70          void FLASH_WriteData(unsigned char fui_Address, unsigned int fuc_SaveData);//Ð´ÈëÒ»¸öÊý¾Ý
+  71          //void Flash_WriteArr(unsigned int fui_Address,unsigned char fuc_Length,unsigned char *fucp_SaveArr);//Ð´È
+             -ëÈÎÒâ³¤¶ÈÊý¾Ý
+  72          void Flash_ReadArr(unsigned int fui_Address,unsigned char fuc_Length,unsigned char *fucp_SaveArr);//¶ÁÈ¡ÈÎ
+             -Òâ³¤¶ÈÊý¾Ý
+  73          
+  74          //unsigned char guc_Write_a[5] = {0}; //Ð´ÈëÊý¾Ý
+  75          unsigned char guc_Read_a[5] = {0x00};     //ÓÃÓÚ´æ·Å¶ÁÈ¡µÄÊý¾Ý
+  76          // unsigned char guc_Uartflag = 0;            //·¢ËÍ±êÖ¾Î»
+  77          // unsigned char guc_Uartcnt = 0;           //·¢ËÍ¼ÆÊý
+  78          // unsigned char guc_Uartbuf_a[2] = {0x00}; //»º´æÊý×é
+  79          
+  80          void Flash_ReadArr(unsigned int fui_Address,unsigned char fuc_Length,unsigned char *fucp_SaveArr)
+  81          {
+  82   1        while(fuc_Length--)
+  83   1        *(fucp_SaveArr++)=*((unsigned char code *)(fui_Address++));//¶ÁÈ¡Êý¾Ý
+  84   1      }
+  85          
+  86          void Delay_us(uint q)
+  87          {
+  88   1        uint j;
+  89   1        for(j=0;j<q;j++)
+  90   1        {
+  91   2            ;
+  92   2        }
+  93   1      }
+  94          
+  95          void Delay_ms(uint t)
+  96          {
+  97   1        Timer_Counter=0;
+  98   1        while(Timer_Counter<t)
+  99   1        {
+ 100   2          WDTC |= 0x10;   //Çå¿´ÃÅ¹·
+ 101   2        }
+ 102   1        
+ 103   1      }
+ 104          
+ 105          void Delay_us_1(uint q1)
+ 106          {
+ 107   1        uint j;
+ 108   1        for(j=0;j<q1;j++)
+ 109   1        {
+ 110   2            ;
+ 111   2        }
+ 112   1      }
+ 113          // void Delay_ms(uint t)
+ 114          // {
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 3   
+
+ 115          //  for(;t>0;t--)
+ 116          //  {
+ 117          //    Delay_us_1(1000);
+ 118          //    WDTC |= 0x10;   //Çå¿´ÃÅ¹·
+ 119          //  }
+ 120          // }
+ 121          
+ 122          /***************************************************************************************
+ 123            * @ËµÃ÷   ÏµÍ³³õÊ¼»¯º¯Êý
+ 124            * @²ÎÊý   ÎÞ
+ 125            * @·µ»ØÖµ ÎÞ
+ 126            * @×¢     ÎÞ
+ 127          ***************************************************************************************/
+ 128          void InitSYS()
+ 129          {
+ 130   1        /********************************ÏµÍ³ÆµÂÊ³õÊ¼»¯***************************************/
+ 131   1        
+ 132   1        CLKSWR = 0X50;//32MHZ  //0x51;                     //Ñ¡ÔñÄÚ²¿¸ßÆµRCÎªÏµÍ³Ê±ÖÓ£¬ÄÚ²¿¸ßÆµRC 2·ÖÆµ£¬Fosc=16MHz
+ 133   1        CLKDIV = 0X02;//2·ÖÆµ  //0x01;                     //Fosc 1·ÖÆµµÃµ½Fcpu£¬Fcpu=16MHz 
+ 134   1        FREQ_CLK = 0x10;                   //IAPÆµÂÊ
+ 135   1        
+ 136   1        /**********************************µÍÑ¹¸´Î»³õÊ¼»¯**************************************/
+ 137   1        
+ 138   1      //  BORC = 0xC0;                       //Ê¹ÄÜµÍÑ¹¸´Î»1.8V£¬´øÏû¶¶Ê¹ÄÜ
+ 139   1      //  BORDBC = 0x01;                     //Ïû¶¶Ê±¼äBORDBC*8TCPU+2TCPU
+ 140   1        
+ 141   1        /***********************************¿´ÃÅ¿Ú³õÊ¼»¯***************************************/
+ 142   1        WDTC = 0x5F;                       //ÔÊÐíWDT¸´Î»£¬¿ÕÏÐÄ£Ê½ÏÂ½ûÖ¹WDT£¬Ñ¡Ôñ1024·ÖÆµ£¨ÄÚ²¿µÍÆµÊ±ÖÓ44K£©
+ 143   1        WDTCCR = 0X20;  //0X20/44 =0.73Ãë           //0xFF;  //Òç³öÊ±¼äÔ¼6Ãë
+ 144   1        //Òç³ö¼ÆËãÊ±¼ä=£¨WDT·ÖÆµÏµÊý*£¨WDTCCR+1£©£©/ÄÚ²¿µÍÆµRCÆµÂÊ
+ 145   1      }
+ 146          
+ 147          /***************************************************************************************
+ 148            * @ËµÃ÷   ¶¨Ê±Æ÷³õÊ¼»¯º¯Êý
+ 149            * @²ÎÊý   ÎÞ
+ 150            * @·µ»ØÖµ ÎÞ
+ 151            * @×¢     ÎÞ
+ 152          ***************************************************************************************/
+ 153          void Timer_Init()
+ 154          {
+ 155   1        /**********************************TIM1ÅäÖÃ³õÊ¼»¯**************************************/
+ 156   1        TCON1 = 0x00;             //T1¶¨Ê±Æ÷Ê±ÖÓÎªFosc
+ 157   1        TMOD = 0x01;              //T1-16Î»ÖØ×°ÔØ¶¨Ê±Æ÷/¼ÆÊýÆ÷,T0-16Î»¶¨Ê±Æ÷
+ 158   1      
+ 159   1        //Tim1¼ÆËãÊ±¼ä  = (65536 - 0xFACB) * (1 / (Fosc /Timer·ÖÆµÏµÊý))
+ 160   1        //        = 1333 / (16000000 / 12)
+ 161   1        //        = 1 ms
+ 162   1      
+ 163   1        //¶¨Ê±1ms
+ 164   1        //·´ÍÆ³õÖµ  = 65536 - ((1/1000) / (1/(Fosc / Timer·ÖÆµÏµÊý)))
+ 165   1        //        = 65536 - ((1/1000) / (1/(16000000 / 12)))
+ 166   1        //      = 65536 - 1333
+ 167   1        //      = 0xFACB
+ 168   1        
+ 169   1        TH1 = 0XF5;//0xFA;
+ 170   1        TL1 = 0X95;//0xCB;
+ 171   1        IE |= 0x08;               //´ò¿ªT1ÖÐ¶Ï
+ 172   1        TCON |= 0x40;             //Ê¹ÄÜT1
+ 173   1          
+ 174   1        
+ 175   1          
+ 176   1        TH0 = 0X97;//0xCB;
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 4   
+
+ 177   1        TL0 = 0XD6;//0xEB;                //T0¶¨Ê±Ê±¼ä10ms
+ 178   1        
+ 179   1        TCON |= 0x10;             //Ê¹ÄÜT0
+ 180   1      }
+ 181          
+ 182          /***************************************************************************************
+ 183            * @ËµÃ÷   UART1³õÊ¼»¯º¯Êý
+ 184            * @²ÎÊý   ÎÞ
+ 185            * @·µ»ØÖµ ÎÞ
+ 186            * @×¢     ÎÞ
+ 187          ***************************************************************************************/
+ 188          void UART1_Init()
+ 189          {
+ 190   1        /**********************************UARTÅäÖÃ³õÊ¼»¯**************************************/
+ 191   1        P2M0 = P2M0&0xF0|0x08;              //P20ÉèÖÃÎªÍÆÍìÊä³ö
+ 192   1        P0M2 = P0M2&0xF0|0x02;              //P04ÉèÖÃÎªÉÏÀ­ÊäÈë
+ 193   1        P0_4 = 1;
+ 194   1        TXD_MAP = 0x20;                     //TXDÓ³ÉäP20
+ 195   1        RXD_MAP = 0x04;                     //RXDÓ³ÉäP04    
+ 196   1        T4CON = 0x06;                       //T4¹¤×÷Ä£Ê½£ºUART1²¨ÌØÂÊ·¢ÉúÆ÷
+ 197   1        
+ 198   1        //²¨ÌØÂÊ¼ÆËã
+ 199   1        //²¨ÌØÂÊ = 1/16 * (T4Ê±ÖÓÔ´ÆµÂÊ / ¶¨Ê±Æ÷4Ô¤·ÖÆµ±È) / (65536 - 0xFF98)
+ 200   1        //       = 1/16 * ((16000000 / 1) / 104)
+ 201   1        //     = 9615.38(Îó²î0.16%)
+ 202   1      
+ 203   1        //²¨ÌØÂÊ9600
+ 204   1        //·´ÍÆ³õÖµ = (65536 - ((T4Ê±ÖÓÔ´ÆµÂÊ / ¶¨Ê±Æ÷4Ô¤·ÖÆµ±È) * (1 / 16)) / ²¨ÌØÂÊ)
+ 205   1        //       = (65536 - (16000000 * (1 / 16) / 9600))
+ 206   1        //       = (65536 - 104.167)
+ 207   1        //         = FF98
+ 208   1        //0xFF98->9600
+ 209   1        //0xFFCC->19200
+ 210   1        //0xFFEF->57600
+ 211   1        
+ 212   1        
+ 213   1        TH4 = 0xFF;
+ 214   1        TL4 = 0XDD;//57600@32MHZ   //0x98;  //²¨ÌØÂÊ9600    //0xEE;       //²¨ÌØÂÊ56000
+ 215   1        SCON2 = 0x02;                        //8Î»UART£¬²¨ÌØÂÊ¿É±ä
+ 216   1        SCON = 0x10;                         //ÔÊÐí´®ÐÐ½ÓÊÕ
+ 217   1        IE |= 0X10;                          //Ê¹ÄÜ´®¿ÚÖÐ¶Ï
+ 218   1        //EA = 1;                              //Ê¹ÄÜ×ÜÖÐ¶Ï
+ 219   1      }
+ 220          
+ 221          /***************************************************************************************
+ 222            * @ËµÃ÷   ADC³õÊ¼»¯º¯Êý
+ 223            * @²ÎÊý   ÎÞ
+ 224            * @·µ»ØÖµ ÎÞ
+ 225            * @×¢     ÎÞ
+ 226          ***************************************************************************************/
+ 227          void ADC_Init()
+ 228          {
+ 229   1        
+ 230   1        ADCC0 |= 0x03;            //²Î¿¼Ô´ÎªÄÚ²¿2V
+ 231   1        ADCC0 |= 0x80;              //´ò¿ªADC×ª»»µçÔ´
+ 232   1        Delay_us(20);           //ÑÓÊ±20us£¬È·±£ADCÏµÍ³ÎÈ¶¨
+ 233   1        ADCC1 = 0x01;             //Ñ¡ÔñÍâ²¿Í¨µÀ1
+ 234   1        ADCC2 = 0x4F;             //×ª»»½á¹û12Î»Êý¾Ý£¬Êý¾ÝÓÒ¶ÔÆë£¬ADCÊ±ÖÓ16·ÖÆµ-1MHZ//0X4B-8·ÖÆµ//0X41-4·ÖÆµ
+ 235   1      }
+ 236          
+ 237          /***************************************************************************************
+ 238            * @ËµÃ÷   IO¿Ú³õÊ¼»¯º¯Êý
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 5   
+
+ 239            * @²ÎÊý   ÎÞ
+ 240            * @·µ»ØÖµ ÎÞ
+ 241            * @×¢     ÎÞ
+ 242          ***************************************************************************************/
+ 243          void GPIO_Init()
+ 244          {
+ 245   1        //P0M0·Ö¸ß4Î»ÓëµÍ4Î»£¬µÍ4Î»¿ØÖÆP00ÊäÈëÊä³ö£¬¸ß4Î»¿ØÖÆP01ÊäÈëÊä³ö£¬ÆäËûÒÔ´ËÀàÍÆ
+ 246   1        //P0M1¸ß4¿ØÖÆP03£¬µÍ4¿ØÖÆP02
+ 247   1        //P1M2¸ß4¿ØÖÆP15£¬µÍ4¿ØÖÆP14
+ 248   1        P0M0 = P0M0&0xF0|0x08;          //P00ÉèÖÃÎªÍÆÍìÊä³ö
+ 249   1        
+ 250   1        P0M0 = P0M0&0x0F|0x30;          //P01ÉèÖÃÎªÄ£ÄâÊäÈë
+ 251   1        P0M3 = P0M3&0x0F|0x30;          //P07ÉèÖÃÎªÄ£ÄâÊäÈë
+ 252   1      //  P0M0 = P0M0&0x0F|0x80;          //P01ÉèÖÃÎªÍÆÍìÊä³ö
+ 253   1        
+ 254   1        P0M3 = P0M3&0xF0|0x08;          //P06ÉèÖÃÎªÍÆÍìÊä³ö
+ 255   1      }
+ 256          
+ 257          // u16 Read_ADC(u8 Channel)
+ 258          // {
+ 259          //  u16 ADC_Temp;
+ 260          //  ADCC1 = Channel;              //Ñ¡ÔñÍâ²¿Í¨µÀ1
+ 261          //   ADCC0 |= 0x40;         //Æô¶¯ADC×ª»»
+ 262          //  while(!(ADCC0&0x20));   //µÈ´ýADC×ª»»½áÊø
+ 263          //  ADCC0 &=~ 0x20;         //Çå³ý±êÖ¾Î»
+ 264          //  ADC_Temp = ADCR;        //»ñÈ¡ADCµÄÖµ
+ 265          //  return ADC_Temp;
+ 266          // }
+ 267          
+ 268          /***************************************************************************************
+ 269            * @ËµÃ÷   ÏµÍ³Ê±ÖÓ¼ÆÊýº¯Êý
+ 270            * @²ÎÊý   ÎÞ
+ 271            * @·µ»ØÖµ ÎÞ
+ 272            * @×¢     ÎÞ
+ 273          ***************************************************************************************/
+ 274          /*
+ 275          void System_Time_Cnt(void)
+ 276          {
+ 277              static u32 Timer1Count1 = 0;
+ 278              static u8 Timer1Count2 = 0;
+ 279              u32 Tampe = 1;
+ 280              if(Timer1_FLAG)              //1ms
+ 281              {
+ 282                  Timer1_FLAG = 0;
+ 283                  Timer1Count1 ++;
+ 284                  Tampe = Timer1Count1 % 10;
+ 285                  if(Tampe == 0)
+ 286                      Time_10mS_FLAG = 1;
+ 287                  Tampe = Timer1Count1 % 100;
+ 288                  if(Tampe == 0)
+ 289                      Time_100mS_FLAG = 1;
+ 290                  Tampe = Timer1Count1 % 200;
+ 291                  if(Tampe == 0)
+ 292                      Time_200mS_FLAG = 1;
+ 293                  Tampe = Timer1Count1 % 500;
+ 294                  if(Tampe == 0)
+ 295                      Time_500mS_FLAG = 1;
+ 296                  Tampe = Timer1Count1 % 1000;
+ 297                  if(Tampe == 0)
+ 298                      Time_1S_FLAG = 1;
+ 299                  Tampe = Timer1Count1 % 10000;
+ 300                  if(Tampe == 0)
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 6   
+
+ 301                  {
+ 302                      Time_10S_FLAG = 1;
+ 303                      Timer1Count1 = 0;
+ 304                      Timer1Count2 ++;
+ 305                      Tampe = Timer1Count2 % 6;
+ 306                      if(Tampe == 0)
+ 307                          Time_1Min_FLAG = 1;
+ 308                      Tampe = Timer1Count2 % 60;
+ 309                      if(Tampe == 0)
+ 310                      {
+ 311                          Time_1H_FLAG = 1;
+ 312                          Timer1Count2 = 0;
+ 313                      }
+ 314                  }
+ 315              }
+ 316          }
+ 317          */
+ 318          
+ 319          /***************************************************************************************
+ 320            * @ËµÃ÷   ÏµÍ³ÈÎÎñ´¦Àíº¯Êý
+ 321            * @²ÎÊý   ÎÞ
+ 322            * @·µ»ØÖµ ÎÞ
+ 323            * @×¢     ÎÞ
+ 324          ***************************************************************************************/
+ 325          
+ 326          /*
+ 327          void System_Task(void)
+ 328          {
+ 329              u8 temp;
+ 330              if(Time_10mS_FLAG)
+ 331              {
+ 332                  Time_10mS_FLAG = 0;
+ 333                  //User TASK
+ 334                  
+ 335                  
+ 336                  //User TASK
+ 337                  if(Time_100mS_FLAG)
+ 338                  {
+ 339                      Time_100mS_FLAG = 0;
+ 340                      //User TASK
+ 341          
+ 342                  
+ 343                  
+ 344                      //User TASK
+ 345                  }
+ 346                  if(Time_200mS_FLAG)
+ 347                  {
+ 348                      Time_200mS_FLAG = 0;
+ 349                      //User TASK
+ 350          
+ 351                  
+ 352                  
+ 353                      //User TASK
+ 354                  }
+ 355                  if(Time_500mS_FLAG)
+ 356                  {
+ 357                      Time_500mS_FLAG = 0;
+ 358                      //User TASK
+ 359                      AN1_Data = Read_ADC(0x01);
+ 360                    
+ 361                      //User TASK
+ 362                  }
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 7   
+
+ 363                   if(Time_1S_FLAG)
+ 364                  {
+ 365                      Time_1S_FLAG = 0;
+ 366                      //User TASK
+ 367          
+ 368                      temp = 0xFF & (AN1_Data >> 8);
+ 369                      SBUF = temp;
+ 370                      while(!(SCON & 0x02));
+ 371                      SCON &=~ 0x02;                 //Çå³ý·¢ËÍÖÐ¶Ï±êÖ¾Î»
+ 372                      temp = 0xFF & AN1_Data;
+ 373                      SBUF = temp;
+ 374                      while(!(SCON & 0x02));
+ 375                      SCON &=~ 0x02;                 //Çå³ý·¢ËÍÖÐ¶Ï±êÖ¾Î»
+ 376                      P0_0 =~ P0_0; 
+ 377                      //User TASK
+ 378                      
+ 379                  }
+ 380                  if(Time_10S_FLAG)
+ 381                  {
+ 382                      Time_10S_FLAG = 0;
+ 383                      //User TASK
+ 384                      
+ 385          
+ 386                      //User TASK
+ 387                  }
+ 388                  if(Time_1Min_FLAG)
+ 389                  {
+ 390                      Time_1Min_FLAG = 0;
+ 391                      //User TASK
+ 392                  
+ 393                  
+ 394                  
+ 395                      //User TASK
+ 396                  }
+ 397                  if(Time_1H_FLAG)
+ 398                  {
+ 399                      Time_1H_FLAG = 0;
+ 400                      //User TASK
+ 401                  
+ 402                  
+ 403                  
+ 404                      //User TASK
+ 405                  }
+ 406              }
+ 407          }
+ 408          */
+ 409          
+ 410          void send_data(u8 d)
+ 411          {
+ 412   1          SBUF = d;
+ 413   1          while(!(SCON & 0x02));
+ 414   1          SCON &=~ 0x02;
+ 415   1      }
+ 416          
+ 417          uchar read_ad(uchar ch)
+ 418          {
+ 419   1        u8 i;
+ 420   1        uint  ad_sum;
+ 421   1        
+ 422   1      //  switch (ch)
+ 423   1      //  {
+ 424   1      //    case 3:
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 8   
+
+ 425   1      //      ADC_P16_AN3;
+ 426   1      //      break;
+ 427   1      //    case 4:
+ 428   1      //      ADC_P15_AN4;
+ 429   1      //      break;
+ 430   1      //    case 5:
+ 431   1      //      ADC_P14_AN5;
+ 432   1      //      break;
+ 433   1      //  }
+ 434   1        
+ 435   1        
+ 436   1      //  if(ch==3)
+ 437   1      //  {
+ 438   1      //    ADC_P16_AN3;
+ 439   1      //  }
+ 440   1      //  else if(ch==4)
+ 441   1      //  {
+ 442   1      //    ADC_P15_AN4;
+ 443   1      //  }
+ 444   1        
+ 445   1        ADCC1 = ch;             //Ñ¡ÔñÍâ²¿Í¨µÀ
+ 446   1        ADCC0 |= 0x40;          //Æô¶¯ADC×ª»»
+ 447   1        while(!(ADCC0&0x20));   //µÈ´ýADC×ª»»½áÊø
+ 448   1        ADCC0 &=~ 0x20;         //Çå³ý±êÖ¾Î»
+ 449   1        
+ 450   1        //ADC_Temp = ADCR;        //»ñÈ¡ADCµÄÖµ 
+ 451   1        
+ 452   1      //  delay_ms(1);
+ 453   1      //  
+ 454   1      //  ADC_TG; 
+ 455   1        Delay_us(100);
+ 456   1        
+ 457   1        ad_sum=0;
+ 458   1        //ADC_INT_IF_CLR; //ÇåÖÐ¶Ï±êÖ¾Î»
+ 459   1        
+ 460   1        
+ 461   1        for(i=0;i<16;i++)
+ 462   1        {
+ 463   2      //    ADC_TG; 
+ 464   2      //    while(ADC_IF==0){};
+ 465   2      //    //adc_data = ADC_DATA_RD();
+ 466   2      //      
+ 467   2      //    k=ADC_DH;
+ 468   2      //    k =k <<8;
+ 469   2      //    k+=ADC_DL;
+ 470   2      //      
+ 471   2      //    ADC_INT_IF_CLR; //ÇåÖÐ¶Ï±êÖ¾Î»
+ 472   2      //    ad_sum+=k;
+ 473   2            
+ 474   2      
+ 475   2          ADCC0 |= 0x40;          //Æô¶¯ADC×ª»»
+ 476   2          while(!(ADCC0&0x20));   //µÈ´ýADC×ª»»½áÊø
+ 477   2          ADCC0 &=~ 0x20;         //Çå³ý±êÖ¾Î»
+ 478   2          ad_sum += ADCR;       //»ñÈ¡ADCµÄÖµ
+ 479   2          
+ 480   2          Delay_us(20);
+ 481   2        }
+ 482   1        
+ 483   1        //ADC_P14_AN5;
+ 484   1        ADCC1 =1;
+ 485   1        i=ad_sum>>8;
+ 486   1        
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 9   
+
+ 487   1        Delay_us(100);
+ 488   1        return(i);
+ 489   1        
+ 490   1      }
+ 491          
+ 492          void set_var(void)
+ 493          {
+ 494   1        
+ 495   1        Flash_ReadArr(0x2F00,5,guc_Read_a); //¶ÁÈ¡µØÖ·0x2F00ËùÔÚÉÈÇø
+ 496   1        
+ 497   1        TH=guc_Read_a[0];
+ 498   1        TH<<=8;
+ 499   1        TH+=guc_Read_a[1];
+ 500   1        TH*=1000;
+ 501   1        if(TH<TH_LOW||TH>TH_HIGH)TH=TH_DEF;
+ 502   1        
+ 503   1          
+ 504   1        LIGHT_TH=guc_Read_a[2];
+ 505   1      
+ 506   1        if(LIGHT_TH==0)LIGHT_TH=LIGHT_TH0;
+ 507   1        else 
+ 508   1          if(LIGHT_TH==0XFE)LIGHT_TH=255;
+ 509   1      
+ 510   1        DELAY_NUM=guc_Read_a[3];
+ 511   1        DELAY_NUM<<=8;
+ 512   1        DELAY_NUM+=guc_Read_a[4];
+ 513   1        if(DELAY_NUM==0||DELAY_NUM>MAX_DELAY)DELAY_NUM=5;
+ 514   1        
+ 515   1        DELAY_NUM<<=2;
+ 516   1        
+ 517   1      }
+ 518          
+ 519          /***************************************************************************************
+ 520            * @ËµÃ÷   Ö÷º¯Êý
+ 521            * @²ÎÊý   ÎÞ
+ 522            * @·µ»ØÖµ ÎÞ
+ 523            * @×¢     ÎÞ
+ 524          ***************************************************************************************/
+ 525          void main()
+ 526          {
+ 527   1        u8 i,j;
+ 528   1        InitSYS();
+ 529   1        GPIO_Init();
+ 530   1        LIGHT_ON;
+ 531   1        
+ 532   1        Timer_Init();
+ 533   1        UART1_Init();
+ 534   1        ADC_Init();
+ 535   1      
+ 536   1        LVDC = 0xAA;              //LVDÉèÖÃ2.4V,½ûÖ¹ÖÐ¶Ï
+ 537   1        //  Ïû¶¶Ê±¼ä =  (0xFF + 2) * 1/Fcpu
+ 538   1        //       =  (0xFF + 2) / 16000000 £¨µ±Ç°µÄCPUÊ±ÖÓ£©
+ 539   1        //       =  16.0625us
+ 540   1        LVDDBC = 0xFF;            //ÉèÖÃÏû¶¶Ê±¼ä
+ 541   1        LVDC &=~ 0x08;            //Çå³ýLVDÖÐ¶Ï±êÖ¾Î»   
+ 542   1      //  
+ 543   1        EA=1;
+ 544   1        
+ 545   1        Delay_ms(200);
+ 546   1        
+ 547   1        //LIGHT_ON;
+ 548   1        
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 10  
+
+ 549   1        light_ad=read_ad(7);
+ 550   1        light_ad0=light_ad;
+ 551   1        
+ 552   1        EA=0;
+ 553   1        set_var();
+ 554   1        
+ 555   1        //for(i=0;i<5;i++)send_data(guc_Read_a[i]);
+ 556   1        
+ 557   1      //  TXdata[0]=VERSION;
+ 558   1      //  t=TH/1000;
+ 559   1      //  TXdata[1]=t>>8;
+ 560   1      //  TXdata[2]=t;
+ 561   1      //  TXdata[3]=LIGHT_TH;
+ 562   1      //  t=DELAY_NUM/4;
+ 563   1      //  TXdata[4]=t>>8;
+ 564   1      //  TXdata[5]=t;
+ 565   1      
+ 566   1      //  TXdata[6]=light_ad;
+ 567   1      
+ 568   1      //  for(i=0;i<7;i++)send_data(TXdata[i]); 
+ 569   1        
+ 570   1        EA=1;
+ 571   1        
+ 572   1      //µÈ´ýÖ±Á÷µçÑ¹ÎÈ¶¨
+ 573   1        j=0;
+ 574   1        while(1)
+ 575   1        {
+ 576   2          SUM=0;
+ 577   2          
+ 578   2          
+ 579   2      //    for(i=0;i<4;i++)  //0.52s
+ 580   2      //    {
+ 581   2      //      for(t=0;t<8192;t++) //0.13s
+ 582   2      //      {
+ 583   2      
+ 584   2      //        ADCC0 |= 0x40;          //Æô¶¯ADC×ª»»
+ 585   2      //        while(!(ADCC0&0x20));   //µÈ´ýADC×ª»»½áÊø
+ 586   2      //        ADCC0 &=~ 0x20;         //Çå³ý±êÖ¾Î»
+ 587   2      //        k = ADCR;       //»ñÈ¡ADCµÄÖµ
+ 588   2      //        
+ 589   2      //        SUM+=k;
+ 590   2      //  
+ 591   2      //      }
+ 592   2      //      
+ 593   2      //      WDTC |= 0x10;   //Çå¿´ÃÅ¹·
+ 594   2            
+ 595   2      
+ 596   2            for(i=0;i<128;i++)  //
+ 597   2            {
+ 598   3      
+ 599   3              ADCC0 |= 0x40;          //Æô¶¯ADC×ª»»
+ 600   3              while(!(ADCC0&0x20));   //µÈ´ýADC×ª»»½áÊø
+ 601   3              ADCC0 &=~ 0x20;         //Çå³ý±êÖ¾Î»
+ 602   3              //k = ADCR;       //»ñÈ¡ADCµÄÖµ
+ 603   3              
+ 604   3              SUM+=ADCR;
+ 605   3              
+ 606   3            }
+ 607   2      
+ 608   2      //·¢ËÍ¸Ð¹âADÖµ
+ 609   2      //        send_byte=0xFA;
+ 610   2      //        check_sum=send_byte;
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 11  
+
+ 611   2      //        send_data(send_byte);
+ 612   2      
+ 613   2      //        //send_byte=light_ad;
+ 614   2      //        check_sum+=light_ad;
+ 615   2      //        send_data(light_ad);
+ 616   2      
+ 617   2      //        check_sum+=light_ad;
+ 618   2      //        send_data(light_ad);
+ 619   2      //        
+ 620   2      //        check_sum+=1;
+ 621   2      //        send_data(check_sum);
+ 622   2      
+ 623   2      
+ 624   2      
+ 625   2        //}
+ 626   2          
+ 627   2          Delay_ms(400);
+ 628   2            
+ 629   2      
+ 630   2          
+ 631   2          //WDTC |= 0x10;   //Çå¿´ÃÅ¹·
+ 632   2      
+ 633   2          i=SUM>>11;
+ 634   2          if((i>12)&&(i<141)&&(j>20))break;
+ 635   2      
+ 636   2          j++;
+ 637   2      
+ 638   2          if(j>80)break;  //??35????????????1.1V???????
+ 639   2      
+ 640   2        }
+ 641   1      
+ 642   1      
+ 643   1        
+ 644   1        //Delay_ms(200);
+ 645   1      
+ 646   1        LIGHT_OFF;
+ 647   1        
+ 648   1        Delay_ms(300);
+ 649   1        
+ 650   1        SUM=0;
+ 651   1      
+ 652   1      
+ 653   1          for(i=0;i<8;i++)
+ 654   1          {
+ 655   2            for(t=0;t<8192;t++) 
+ 656   2            {
+ 657   3      //        ADC_TG; 
+ 658   3      //        while(ADC_IF==0){};
+ 659   3      //        //adc_data = ADC_DATA_RD();
+ 660   3      //          
+ 661   3      //        k = ADC_DH<<8;
+ 662   3      //        //adc_data =adc_data <<8;
+ 663   3      //        k+= ADC_DL;
+ 664   3      //          
+ 665   3      //        ADC_INT_IF_CLR; //ÇåÖÐ¶Ï±êÖ¾Î»
+ 666   3          
+ 667   3              ADCC0 |= 0x40;          //Æô¶¯ADC×ª»»
+ 668   3              while(!(ADCC0&0x20));   //µÈ´ýADC×ª»»½áÊø
+ 669   3              ADCC0 &=~ 0x20;         //Çå³ý±êÖ¾Î»
+ 670   3              k = ADCR;       //»ñÈ¡ADCµÄÖµ
+ 671   3              
+ 672   3              SUM+=k;
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 12  
+
+ 673   3        
+ 674   3            }
+ 675   2            WDTC |= 0x10;   //Çå¿´ÃÅ¹·
+ 676   2      
+ 677   2          }
+ 678   1      
+ 679   1          average=SUM>>16;
+ 680   1      
+ 681   1      
+ 682   1      //  light_ad=read_ad(7);
+ 683   1      //  light_ad0=light_ad;
+ 684   1      
+ 685   1      //  Delay_ms(4);  //4ms
+ 686   1      
+ 687   1        SUM=0;
+ 688   1        while(1)
+ 689   1        {
+ 690   2        //  j=0;
+ 691   2          
+ 692   2          while(1)
+ 693   2          {
+ 694   3      //        ADC_TG; 
+ 695   3      //        while(ADC_IF==0){};
+ 696   3      //        //adc_data = ADC_DATA_RD();
+ 697   3      //          
+ 698   3      //        k = ADC_DH<<8;
+ 699   3      //        //adc_data =adc_data <<8;
+ 700   3      //        k+= ADC_DL;
+ 701   3      //          
+ 702   3      //        ADC_INT_IF_CLR; //ÇåÖÐ¶Ï±êÖ¾Î»
+ 703   3      
+ 704   3            ADCC0 |= 0x40;          //Æô¶¯ADC×ª»»
+ 705   3            while(!(ADCC0&0x20));   //µÈ´ýADC×ª»»½áÊø
+ 706   3            ADCC0 &=~ 0x20;         //Çå³ý±êÖ¾Î»
+ 707   3            k = ADCR;       //»ñÈ¡ADCµÄÖµ
+ 708   3            
+ 709   3            times++;
+ 710   3            
+ 711   3            SUM+=k;
+ 712   3      
+ 713   3            //¼ÆËãÐÅºÅÖµÓëÖ±Á÷µçÑ¹Æ«²îÖµ
+ 714   3            if(k>average){k-=average;}
+ 715   3            else {k=average-k;}
+ 716   3            SUM1+=k;
+ 717   3      
+ 718   3      
+ 719   3            if(times>=9600) //250ms   //12800)  //330ms
+ 720   3            {
+ 721   4      
+ 722   4              WDTC |= 0x10;   //Çå¿´ÃÅ¹·
+ 723   4              
+ 724   4              times=0;
+ 725   4      
+ 726   4              calc_average_times++;
+ 727   4            
+ 728   4              SUM16+=SUM;
+ 729   4              
+ 730   4              if(calc_average_times>=10)  //Ã¿2.5SÖØÐÂ¼ÆËãÒ»´ÎÖ±Á÷µçÑ¹Öµ
+ 731   4              {
+ 732   5                calc_average_times=0;
+ 733   5                
+ 734   5                //SUM16>>=10;
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 13  
+
+ 735   5                SUM16/=96000;//102400;
+ 736   5                average+=SUM16;
+ 737   5                average/=2;
+ 738   5                SUM16=0;
+ 739   5              }
+ 740   4              
+ 741   4              if(check_light_times<8) //2s  ¶ÁÈ¡Ò»´Î¸Ð¹âADÖµ
+ 742   4              {
+ 743   5                check_light_times++;
+ 744   5              }
+ 745   4              else
+ 746   4              {
+ 747   5                if(LIGHT==0)  
+ 748   5                {
+ 749   6                  //light_ad=READ_LIGHT();
+ 750   6                  light_ad=read_ad(7);
+ 751   6      
+ 752   6                  if((light_ad<=(light_ad0+2))&&(light_ad0<=(light_ad+2)))
+ 753   6                    light_ad=light_ad0;
+ 754   6      
+ 755   6                  light_ad0=light_ad;
+ 756   6      
+ 757   6                  check_light_times=0;
+ 758   6                }
+ 759   5              }
+ 760   4      
+ 761   4              if(SUM0==0)
+ 762   4              {
+ 763   5                SUM0=SUM1+5000; 
+ 764   5                if(start_times==0&&SUM0>1000000)SUM0=1000000;
+ 765   5              }
+ 766   4      
+ 767   4              if(SUM1_counter==0)
+ 768   4              {
+ 769   5                SUM10=SUM1;
+ 770   5                MAX_DELTA=1;//SUM10>>3;   
+ 771   5                //if(MAX_DELTA<MAX_DELTA0)MAX_DELTA=MAX_DELTA0;
+ 772   5              }
+ 773   4              
+ 774   4                if((SUM10<(SUM1+MAX_DELTA))&&(SUM1<(SUM10+MAX_DELTA)))//???????????
+ 775   4                {
+ 776   5                  SUM1_counter++;
+ 777   5                  ALL_SUM1+=SUM1;
+ 778   5                  SUM10=ALL_SUM1/SUM1_counter;
+ 779   5                  MAX_DELTA=SUM10>>3;
+ 780   5                  if(MAX_DELTA<MAX_DELTA0)MAX_DELTA=MAX_DELTA0;
+ 781   5                  if(MAX_DELTA>MAX_DELTA1)MAX_DELTA=MAX_DELTA1;
+ 782   5                  
+ 783   5                  if(SUM0>SUM10)
+ 784   5                  {
+ 785   6                    SUM=SUM0-SUM10;
+ 786   6                    if(SUM>80000)SUM0_num=6;
+ 787   6                    else if(SUM>40000)SUM0_num=9;
+ 788   6                    else SUM0_num=12;
+ 789   6                  }
+ 790   5                  else
+ 791   5                  {
+ 792   6                    SUM0_num=12;
+ 793   6                  }
+ 794   5                  
+ 795   5                  if((SUM1_counter>=SUM0_num)&&(SUM10<SUM0))
+ 796   5                  {
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 14  
+
+ 797   6                    if(SUM1_num>16) //???????????????
+ 798   6                    {
+ 799   7                      if(SUM0_num<=9)SUM0=SUM10;
+ 800   7                      else if(SUM0>(SUM10+4000))
+ 801   7                      {
+ 802   8                        SUM0+=SUM10;
+ 803   8                        SUM0/=2;
+ 804   8                      }
+ 805   7                      SUM1_counter=0;
+ 806   7                      ALL_SUM1=0;
+ 807   7                    }
+ 808   6                  }
+ 809   5      
+ 810   5                  else if(SUM1_counter>=SUM1_num)
+ 811   5                  {
+ 812   6                    
+ 813   6      //              if(SUM0>SUM10)
+ 814   6      //              {
+ 815   6      //                if(SUM1_num>16)SUM0=SUM10;  //???????????????
+ 816   6      //              }
+ 817   6      //              else 
+ 818   6                      
+ 819   6                    if(SUM10>(SUM0+4000))
+ 820   6                    {
+ 821   7                      SUM=SUM10-SUM0;
+ 822   7      
+ 823   7                      if((SUM10<9000000)&&(SUM<1000000))
+ 824   7          //????????????,???????????????100000?,???????
+ 825   7                      {
+ 826   8                        if(SUM1_num>16) //????????????
+ 827   8                        {
+ 828   9                          SUM0+=SUM10;
+ 829   9                          SUM0/=2;
+ 830   9                        }
+ 831   8                        else
+ 832   8                        {
+ 833   9                          if(SUM>600000)SUM1_num=16;
+ 834   9                          else if(SUM>300000)SUM1_num=10;
+ 835   9                          else SUM1_num=6;
+ 836   9                          if(SUM1_counter>=SUM1_num)
+ 837   9                          {
+ 838  10                            SUM0+=SUM10;
+ 839  10                            SUM0/=2;
+ 840  10                          }
+ 841   9                        }
+ 842   8                      }
+ 843   7                    }
+ 844   6      //              else if((LIGHT>0)&&(TH==TH_LOW))
+ 845   6      //              {
+ 846   6      //                SUM=SUM10-SUM0; 
+ 847   6      //                TH+=SUM;    //?????????????
+ 848   6      //              }
+ 849   6      
+ 850   6                    if(SUM1_counter>=SUM1_num)
+ 851   6                    {
+ 852   7                      SUM1_counter=0;
+ 853   7                      ALL_SUM1=0;
+ 854   7                    }
+ 855   6                  }
+ 856   5                }
+ 857   4                else
+ 858   4                {
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 15  
+
+ 859   5                  SUM1_counter=0;
+ 860   5                  ALL_SUM1=0;
+ 861   5                }
+ 862   4      
+ 863   4      
+ 864   4      //        //send_byte=0x35;
+ 865   4      //        check_sum=0xFa;
+ 866   4              //send_data(0xFa);
+ 867   4      
+ 868   4      //        send_byte=TH>>15;
+ 869   4      //        check_sum+=send_byte;
+ 870   4      //        send_data(send_byte);
+ 871   4      
+ 872   4      //        //k=TH;
+ 873   4      //        send_byte=TH>>10;
+ 874   4      //        check_sum+=send_byte;
+ 875   4      //        send_data(send_byte);
+ 876   4      //          
+ 877   4      //        send_byte=LIGHT_TH;
+ 878   4      //        check_sum+=send_byte;
+ 879   4      //        send_data(send_byte);         
+ 880   4      
+ 881   4      //        //send_byte=light_ad;
+ 882   4      //        check_sum+=light_ad;
+ 883   4      //        send_data(light_ad);
+ 884   4      
+ 885   4      //        send_byte=average>>4;
+ 886   4      //        check_sum+=send_byte;
+ 887   4      //        send_data(send_byte);
+ 888   4      
+ 889   4      //        send_byte=SUM0>>16;
+ 890   4      //        check_sum+=send_byte;
+ 891   4      //        send_data(send_byte);
+ 892   4      
+ 893   4      //        send_byte=SUM0>>8;
+ 894   4      //        check_sum+=send_byte;
+ 895   4      //        send_data(send_byte);
+ 896   4      
+ 897   4      //        send_byte=SUM1>>16;
+ 898   4      //        check_sum+=send_byte;
+ 899   4      //        send_data(send_byte);
+ 900   4      
+ 901   4      //        send_byte=SUM1>>8;
+ 902   4      //        check_sum+=send_byte;
+ 903   4      //        send_data(send_byte);
+ 904   4      
+ 905   4      //        check_sum+=1;
+ 906   4      //        send_data(check_sum);
+ 907   4      
+ 908   4              if(stop_times>0)  //
+ 909   4              {
+ 910   5                stop_times--; 
+ 911   5                if((SUM0>(SUM01+6000))&&(SUM1<(SUM01+15000)))SUM0=SUM01+6000;
+ 912   5              }
+ 913   4              else
+ 914   4              {
+ 915   5              
+ 916   5                if(start_times>0)
+ 917   5                {
+ 918   6                  start_times--;
+ 919   6                  
+ 920   6                  if(start_times>0) //???????????,???????250*88ms=22S?????????          
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 16  
+
+ 921   6                  {
+ 922   7                    //start_times++;
+ 923   7      /*
+ 924   7                    if(SUM0>600000)
+ 925   7                    {
+ 926   7                      TH=10000;
+ 927   7                    }
+ 928   7                    else */
+ 929   7                    if(SUM0>9000000)
+ 930   7                    {
+ 931   8                      TH=800000;
+ 932   8                    }
+ 933   7                    else
+ 934   7                    {
+ 935   8                      SUM=SUM0+TH;
+ 936   8                      if(SUM>10000000)
+ 937   8                      {
+ 938   9                        TH=10000000-SUM0;
+ 939   9                      }
+ 940   8                      //if(TH<30000)TH=30000;
+ 941   8                    }
+ 942   7      
+ 943   7                  }
+ 944   6                  else
+ 945   6                  {
+ 946   7                    //TH=TH_LOW;
+ 947   7                    //start_times=0;
+ 948   7                    EA=0;
+ 949   7                    set_var();
+ 950   7                    EA=1;
+ 951   7                  }
+ 952   6      
+ 953   6                }
+ 954   5      
+ 955   5                if(SUM1>(SUM0+TH))
+ 956   5                {
+ 957   6                  //SUM=SUM1-SUM0;
+ 958   6      
+ 959   6                //  if(SUM>TH)
+ 960   6                //  {
+ 961   6                    if((light_ad<=LIGHT_TH)||(start_times>0))
+ 962   6                    {
+ 963   7      //                send_data(0xaa);
+ 964   7      
+ 965   7                      
+ 966   7                      //if(alarm_times<2)
+ 967   7                      //{
+ 968   7                      //  alarm_times++;
+ 969   7                    //    }
+ 970   7                      //if(alarm_times>=2)  //??????????????
+ 971   7                      {
+ 972   8                        if(LIGHT==0)SUM01=SUM0;
+ 973   8                        LIGHT=1;
+ 974   8                    
+ 975   8                        //PC3=0;
+ 976   8                        LIGHT_ON;
+ 977   8      
+ 978   8                        SUM1_num=6;
+ 979   8      
+ 980   8        //                send_data(0xaa);
+ 981   8      
+ 982   8                      }
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 17  
+
+ 983   7                    }
+ 984   6      
+ 985   6      /*
+ 986   6                    else
+ 987   6                    {
+ 988   6                      send_data(0xbb);
+ 989   6                      send_data(0xbb);
+ 990   6      
+ 991   6                    }
+ 992   6        */            
+ 993   6                  }
+ 994   5                //  else
+ 995   5                //  {
+ 996   5                //    alarm_times=0;
+ 997   5                //  }
+ 998   5              }
+ 999   4      
+1000   4              SUM2=SUM1;
+1001   4              
+1002   4              SUM=0;
+1003   4              SUM1=0;
+1004   4              
+1005   4              if(LIGHT>0) //????
+1006   4              {
+1007   5                LIGHT++;
+1008   5                if(LIGHT>DELAY_NUM)
+1009   5                {
+1010   6                  LIGHT=0;
+1011   6                  break;
+1012   6                }
+1013   5              }       
+1014   4              
+1015   4            }
+1016   3      
+1017   3      
+1018   3          }
+1019   2        
+1020   2          //PC3=1;
+1021   2          LIGHT_OFF;
+1022   2      
+1023   2          Delay_ms(250);
+1024   2      
+1025   2      
+1026   2          
+1027   2      //    SUM=0;
+1028   2      //    SUM1=0;
+1029   2      //    times=0;
+1030   2          
+1031   2          SUM16=0;
+1032   2          calc_average_times=0;
+1033   2          SUM1_num=64;
+1034   2          
+1035   2          stop_times=2;
+1036   2          //if(start_times==0)TH=TH_LOW;
+1037   2          check_light_times=6;
+1038   2          
+1039   2          SUM1_counter=0;
+1040   2          ALL_SUM1=0;
+1041   2      
+1042   2      //    send_data(0xdd);
+1043   2      //    send_data(0xdd);
+1044   2      
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 18  
+
+1045   2      
+1046   2        } 
+1047   1        
+1048   1      //  while(1)
+1049   1      //  {
+1050   1      //    System_Time_Cnt();
+1051   1      //    System_Task();
+1052   1      //    WDTC |= 0x10;              //Çå¹·
+1053   1      //  }
+1054   1      
+1055   1        
+1056   1        
+1057   1      }
+1058          
+1059          /***************************************************************************************
+1060            * @ËµÃ÷   T1ÖÐ¶Ï·þÎñº¯Êý
+1061            * @²ÎÊý   ÎÞ
+1062            * @·µ»ØÖµ ÎÞ
+1063            * @×¢     ÎÞ
+1064          ***************************************************************************************/
+1065          void TIMER1_Rpt(void) interrupt TIMER1_VECTOR
+1066          {
+1067   1        //Timer1_FLAG = 1;    //1mS
+1068   1        Timer_Counter++;
+1069   1      }
+1070          
+1071          /***************************************************************************************
+1072            * @ËµÃ÷   UART1ÖÐ¶Ï·þÎñº¯Êý
+1073            * @²ÎÊý   ÎÞ
+1074            * @·µ»ØÖµ ÎÞ
+1075            * @×¢     ÎÞ
+1076          ***************************************************************************************/
+1077          
+1078          void UART1_Rpt(void) interrupt UART1_VECTOR
+1079          {
+1080   1        u8 i;
+1081   1        u16 t;
+1082   1        
+1083   1        if(SCON & 0x01)                       //ÅÐ¶Ï½ÓÊÕÖÐ¶Ï±êÖ¾Î»
+1084   1        {
+1085   2            //RXdata[0] = SBUF;//×ª´æ8Î»´®¿Ú½ÓÊÕÊý¾Ý
+1086   2            //SCON &=~ 0x01;                    //Çå³ý½ÓÊÕÖÐ¶Ï±êÖ¾Î»
+1087   2          //EA=0;
+1088   2          if(RXnum>0) //????
+1089   2          {
+1090   3            
+1091   3            if(TF0==1)
+1092   3            {
+1093   4            //  send_data(RXnum);
+1094   4              RXnum=0;
+1095   4              RXdata[0]=0;
+1096   4              
+1097   4            }
+1098   3          }
+1099   2          TH0 = 0X97;//0XCB;  
+1100   2          TL0 = 0XD6;//0XEB;  //0X10000-0XCBEB=13333=10MS
+1101   2          TF0=0;     
+1102   2          
+1103   2            RXdata[RXnum]=SBUF;
+1104   2            RXnum++;
+1105   2            
+1106   2          
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 19  
+
+1107   2            if(RXdata[0]==0xfa)
+1108   2            {
+1109   3              if(RXnum==3)
+1110   3              {
+1111   4              
+1112   4                check_sum=1;
+1113   4                check_sum+=RXdata[0];
+1114   4                check_sum+=RXdata[1];
+1115   4                Delay_us_1(200);
+1116   4      
+1117   4                if(RXdata[2]==check_sum)
+1118   4                {
+1119   5                  if(RXdata[1]==0x02) //0X01
+1120   5                  {
+1121   6                    TXdata[0]=VERSION;
+1122   6                    t=TH/1000;
+1123   6                    TXdata[1]=t>>8;
+1124   6                    TXdata[2]=t;
+1125   6                    TXdata[3]=LIGHT_TH;
+1126   6                    t=DELAY_NUM/4;
+1127   6                    TXdata[4]=t>>8;
+1128   6                    TXdata[5]=t;
+1129   6                  
+1130   6                    TXdata[6]=light_ad;
+1131   6                    TXdata[7]=average>>4;
+1132   6                    TXdata[8]=SUM0>>16;
+1133   6                    TXdata[9]=SUM0>>8;
+1134   6                    TXdata[10]=SUM2>>16;
+1135   6                    TXdata[11]=SUM2>>8;
+1136   6                    TXdata[12]=LIGHT>>8;
+1137   6                    TXdata[13]=LIGHT;
+1138   6                    TXdata[14]=1;
+1139   6                    for(i=0;i<14;i++)TXdata[14]+=TXdata[i];           
+1140   6                    
+1141   6                    //DelayUs(200);
+1142   6                    for(i=0;i<15;i++)send_data(TXdata[i]);
+1143   6                    RXnum=0;
+1144   6      
+1145   6                  }
+1146   5      /*
+1147   5                  else if(RXdata[1]==0x12)
+1148   5                  {
+1149   5                    send_data(light_ad);
+1150   5                  }
+1151   5      */
+1152   5                  else if(RXdata[1]==0x42)
+1153   5                  {
+1154   6                    //send_data(LIGHT_TH);
+1155   6                    if(start_times==1)
+1156   6                    {
+1157   7                      start_times=90;
+1158   7                      TH=TH_HIGH;
+1159   7                        
+1160   7                    //  DelayUs(200);
+1161   7                      send_data(0X42);
+1162   7      
+1163   7                      //send_back();
+1164   7      /*
+1165   7                      TXdata[0]=0x42;
+1166   7                      TXdata[1]=0X42;
+1167   7                      TXdata[2]=0X85;
+1168   7      
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 20  
+
+1169   7                      //DelayUs(200);
+1170   7                      for(i=0;i<3;i++)send_data(TXdata[i]);
+1171   7      */
+1172   7      
+1173   7                    }
+1174   6                    RXnum=0;
+1175   6                  }
+1176   5                  else RXnum=0;
+1177   5      
+1178   5                }
+1179   4                else RXnum=0;
+1180   4              }
+1181   3            }
+1182   2            else if(RXdata[0]==0xfd)
+1183   2            {
+1184   3              if(RXnum==7)
+1185   3              {
+1186   4                check_sum=1;
+1187   4              
+1188   4                for(i=0;i<6;i++)check_sum+=RXdata[i];
+1189   4      
+1190   4                if(RXdata[6]==check_sum)
+1191   4                {
+1192   5      
+1193   5                  Delay_us_1(200);
+1194   5                  send_data(0XFD);
+1195   5                  RXnum=0;
+1196   5      
+1197   5      
+1198   5                  //send_back();
+1199   5      /*
+1200   5                
+1201   5                  TXdata[0]=0xFD;
+1202   5                  TXdata[1]=5;
+1203   5                  TXdata[2]=3;
+1204   5      
+1205   5                  DelayUs(200);
+1206   5                  for(i=0;i<3;i++)send_data(TXdata[i]);
+1207   5                  RXnum=0;
+1208   5                  
+1209   5      */
+1210   5                  Flash_EraseBlock(0X2F00);
+1211   5                  Delay_us_1(10000);
+1212   5                  
+1213   5                  for(i=0;i<5;i++)//EEPROMwrite(i,RXdata[i]); 
+1214   5                  {
+1215   6                    FLASH_WriteData(RXdata[i+1],0X2F00+i);
+1216   6                    Delay_us_1(100);
+1217   6                    
+1218   6                  }
+1219   5      /*
+1220   5                  EEPROMwrite(0x01,RXdata[1]);  //TH>>16
+1221   5                  EEPROMwrite(0x02,RXdata[2]);  //TH>>8
+1222   5                  EEPROMwrite(0x03,RXdata[3]);  //LIGHT_TH,0XFE->0XFF
+1223   5                  EEPROMwrite(0x04,RXdata[4]);  //DELAY_NUM/3
+1224   5      */
+1225   5                  
+1226   5                  set_var();
+1227   5      
+1228   5                }
+1229   4                else RXnum=0;
+1230   4              }
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 21  
+
+1231   3      
+1232   3            }
+1233   2            else 
+1234   2            {
+1235   3              //send_data(RXdata[0]);
+1236   3              RXnum=0;
+1237   3            }
+1238   2            SCON &=~ 0x01;                    //Çå³ý½ÓÊÕÖÐ¶Ï±êÖ¾Î»
+1239   2            EA=1;
+1240   2        }
+1241   1      }
+1242          
+1243          void UART2_Rpt(void) interrupt UART2_VECTOR
+1244          {
+1245   1      }
+1246          
+1247          // void Delay_2us(u16 Cnt)
+1248          // {
+1249          //  while(Cnt--); 
+1250          // }
+1251          
+1252          void Flash_EraseBlock(unsigned int fui_Address)
+1253          {
+1254   1        while(1)
+1255   1        {
+1256   2          LVDC &=~ 0x08;        //Çå³ýLVDÖÐ¶Ï±êÖ¾Î»
+1257   2          P0_0=0;   
+1258   2          if((LVDC&0x08)==0)    break;
+1259   2        }
+1260   1        P0_0=1;   
+1261   1        EA=0;
+1262   1        IAP_CMD = 0xF00F;       //Flash½âËø
+1263   1        IAP_ADDR = fui_Address; //Ð´Èë²Á³ýµØÖ·
+1264   1        IAP_CMD = 0xD22D;       //Ñ¡Ôñ²Ù×÷·½Ê½£¬ ÉÈÇø²Á³ý
+1265   1        IAP_CMD = 0xE11E;       //´¥·¢ºóIAP_ADDRL&IAP_ADDRHÖ¸Ïò0xFF£¬Í¬Ê±×Ô¶¯Ëø¶¨
+1266   1        //EA=1;
+1267   1      }
+1268          
+1269          /**
+1270            * @ËµÃ÷   Ð´ÈëÒ»¸ö×Ö½ÚÊý¾Ýµ½FlashÀïÃæ
+1271            *         ¸Ãº¯ÊýÐè¾ø¶ÔµØÖ·±àÒë£¬ÏêÇéÇë²éÔÄIAP²Ù×÷Ó¦ÓÃÊÖ²á
+1272            * @²ÎÊý   fui_Address £ºFLASHµØÖ·
+1273            * @²ÎÊý   fucp_SaveData£ºÐ´ÈëµÄÊý¾Ý
+1274            * @·µ»ØÖµ ÎÞ
+1275            * @×¢     Ð´Ö®Ç°±ØÐëÏÈ¶Ô²Ù×÷µÄÉÈÇø½øÐÐ²Á³ý
+1276            */
+1277          void FLASH_WriteData(unsigned char fuc_SaveData, unsigned int fui_Address)
+1278          {
+1279   1        while(1)
+1280   1        {
+1281   2          LVDC &=~ 0x08;         //Çå³ýLVDÖÐ¶Ï±êÖ¾Î»
+1282   2          P0_0=0;   
+1283   2          if((LVDC&0x08)==0)    break;
+1284   2        }
+1285   1        P0_0=1; 
+1286   1        EA=0;
+1287   1        IAP_DATA = fuc_SaveData;
+1288   1        IAP_CMD=0xF00F;          //Flash½âËø
+1289   1        IAP_ADDR = fui_Address;
+1290   1        IAP_CMD=0xB44B;          //×Ö½Ú±à³Ì
+1291   1        IAP_CMD=0xE11E;          //´¥·¢Ò»´Î²Ù×÷
+1292   1        //EA=1;
+C51 COMPILER V9.52.0.0   HC_MCU_XBR                                                        09/25/2020 11:10:14 PAGE 22  
+
+1293   1      }
+1294          
+1295          /**
+1296            * @ËµÃ÷   Ð´ÈëÈÎÒâ³¤¶ÈµÄÊý¾Ýµ½FLASHÀïÃæ
+1297            *         ¸Ãº¯ÊýÐè¾ø¶ÔµØÖ·±àÒë£¬ÏêÇéÇë²éÔÄIAP²Ù×÷Ó¦ÓÃÊÖ²á
+1298            * @²ÎÊý   fui_Address £ºFLASHÆðÊ¼µØÖ·
+1299            * @²ÎÊý   fuc_Length £º Ð´ÈëÊý¾Ý³¤¶È
+1300            *         È¡Öµ·¶Î§£º0x00-0xFF
+1301            * @²ÎÊý  *fucp_SaveArr£ºÐ´ÈëµÄÊý¾Ý´æ·ÅÇøÓòµÄÊ×µØÖ·
+1302            * @·µ»ØÖµ ÎÞ
+1303            * @×¢     Ð´Ö®Ç°±ØÐëÏÈ¶Ô²Ù×÷µÄÉÈÇø½øÐÐ²Á³ý
+1304            */
+1305          
+1306          // void Flash_WriteArr(unsigned int fui_Address,unsigned char fuc_Length,unsigned char *fucp_SaveArr)
+1307          // {
+1308          //  unsigned char fui_i = 0;
+1309          //  EA=0;
+1310          //  for(fui_i=0;fui_i<fuc_Length;fui_i++)
+1311          //  {
+1312          //    FLASH_WriteData(*(fucp_SaveArr++), fui_Address++); 
+1313          //  }
+1314          //  EA=1;
+1315          // }
+1316          
+1317          /**
+1318            * @ËµÃ÷   ´ÓFLASHÀïÃæ¶ÁÈ¡ÈÎÒâ³¤¶ÈµÄÊý¾Ý
+1319            * @²ÎÊý   fui_Address £ºFLASHÆðÊ¼µØÖ·
+1320            * @²ÎÊý   fuc_Length £º¶ÁÈ¡Êý¾Ý³¤¶È
+1321            *         È¡Öµ·¶Î§£º0x00-0xFF
+1322            * @²ÎÊý  *fucp_SaveArr£º¶ÁÈ¡Êý¾Ý´æ·ÅµÄÇøÓòÊ×µØÖ·
+1323            * @·µ»ØÖµ ÎÞ
+1324            * @×¢     ÎÞ
+1325            */
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3012    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     98       7
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
