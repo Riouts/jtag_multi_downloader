@@ -1,0 +1,33 @@
+SET PATH=C:\Keil\ARM\ARMCC\bin\;D:\IntelSWTools\compilers_and_libraries_2018.3.210\windows\mpi\intel64\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\Users\phosense\AppData\Local\Microsoft\WindowsApps;D:\MentorGraphics\PADSVX.2.5\SDD_HOME\CAMCAD;d:\cccc2020\TOOL\Git\bin\;d:\cccc2020\TOOL\OpenSSH-Win64\;
+SET CPU_TYPE=STM32F103C8
+SET CPU_VENDOR=STMicroelectronics
+SET UV2_TARGET=Target 1
+SET CPU_CLOCK=0x007A1200
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "delay.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "iwdg.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "led.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "main.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "system.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "timer.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "adc.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "exit.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "core_cm3.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "system_stm32f10x.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_wwdg.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "misc.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_bkp.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_dbgmcu.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_exti.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_flash.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_gpio.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_i2c.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_iwdg.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_rcc.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_sdio.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_tim.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_usart.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_pwr.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmCC" --Via "stm32f10x_adc.__i"
+"C:\Keil\ARM\ARMCC\bin\ArmAsm" --Via ".\startup_stm32f10x_md_vl._ia"
+"C:\Keil\ARM\ARMCC\bin\ArmLink" --Via "jtag_multi_downloader.lnp"
+C:\Keil\ARM\ARMCC\bin\fromelf.exe "jtag_multi_downloader.axf" --i32combined --output "jtag_multi_downloader.hex"
