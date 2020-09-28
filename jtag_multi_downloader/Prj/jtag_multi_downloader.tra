@@ -36,7 +36,7 @@
 ### ADS-LD Output File: 'jtag_multi_downloader.axf'
 ### ADS-LD Command File: 'jtag_multi_downloader.lnp'
 ### Checking for dirty Components...
-### Creating CmdFile 'jtag_multi_downloader.lnp', Handle=0x000007D8
+### Creating CmdFile 'jtag_multi_downloader.lnp', Handle=0x0000079C
 ### Writing '.lnp' file
 ### ADS-LD Command file 'jtag_multi_downloader.lnp' is ready.
 ### ADS-LD: About to start ADS-LD Thread.

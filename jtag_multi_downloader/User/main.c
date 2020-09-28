@@ -34,17 +34,15 @@ void change_chan(u8 chan);//切换通道0~23
 void beep_result(u8 mode);//0/1/2：开始/成功/失败
 /*--------------------------------------------------------------------*/
 
-const char str_poweron[]={"底板已上电"};
-const char str_init_ok[]={"底板初始化完成"};
-const char str_start[]={"开始一次"};
-const char str_finish[]={"完成一次"};
-const char str_trigger[]={"触发PM51下载"};
-
-const char str_go_chan[]={"切换到\n"};
-
+const char str_poweron[]={"poweron!\r\n"};
+const char str_init_ok[]={"init ok!\r\n"};
+const char str_start[]={"start!\r\n"};
+const char str_finish[]={"finish!\r\n"};
+const char str_trigger[]={"trigger!\r\n"};
+const char str_go_chan[]={"goto\r\n"};
 const char str_pm51_busy[]={"."};
-const char str_pm51_ok[]={"ok"};
-const char str_pm51_fail[]={"Fail"};
+const char str_pm51_ok[]={"ok\r\n"};
+const char str_pm51_fail[]={"Fail\r\n"};
 
 void beep_result(u8 mode)
 {
