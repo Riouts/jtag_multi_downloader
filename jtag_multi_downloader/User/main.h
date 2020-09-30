@@ -49,6 +49,8 @@
 #define		KEY1			PC15IN
 #define		KEY2			PC14IN
 
+#define		PRT_DTR		PA7IN
+
 //GPIOA
 #define 	RCLK_ON 			PA8OUT=1
 #define 	RCLK_OFF 	  	PA8OUT=0

@@ -17,6 +17,10 @@ RA3003 4x6拼板的测试工装底板STM32F103C8T6的CPU程序
 	fail:	input	PB9
 	start:	output	PB6
 	busy:	input	PB8
+6. 热敏打印机：
+	prt_dtr: PA7
+	mcu_rx3: PB11
+	mcu_tx3: PB10
 */
 
 /*--------------------------------------------------------------------*/
@@ -32,17 +36,99 @@ void Usart1_send_char(uint16_t Data);//uart1发送一个字节
 void Usart1_send_str(const char *str);//uart1发送字符串
 void change_chan(u8 chan);//切换通道0~23
 void beep_result(u8 mode);//0/1/2：开始/成功/失败
+void print_char(uint16_t Data);//热敏打印机打印一个字节ascii
+void print_num(u8 n,u8 enter);//热敏打印机打印3位整数
+void print_voltage(u16 n);//热敏打印机打印打印电压
+void printer_str(const char *str);//热敏打印机打印字串
+void printer_test();
+void printer_writeBytes(const char a, const char b);
 /*--------------------------------------------------------------------*/
 
-const char str_poweron[]={"poweron!\r\n"};
-const char str_init_ok[]={"init ok!\r\n"};
-const char str_start[]={"start!\r\n"};
-const char str_finish[]={"finish!\r\n"};
-const char str_trigger[]={"trigger!\r\n"};
-const char str_go_chan[]={"goto\r\n"};
+const char str_poweron[]={"上电成功"};
+const char str_init_ok[]={"初始化完成"};
+const char str_start[]={"开始"};
+const char str_finish[]={"结束"};
+const char str_trigger[]={"触发"};
+const char str_go_chan[]={"切换"};
 const char str_pm51_busy[]={"."};
-const char str_pm51_ok[]={"ok\r\n"};
-const char str_pm51_fail[]={"Fail\r\n"};
+const char str_pm51_ok[]={"正常"};
+const char str_pm51_fail[]={"失效"};
+
+#define ASCII_TAB '\t' //!< Horizontal tab
+#define ASCII_LF '\n'  //!< Line feed
+#define ASCII_FF '\f'  //!< Form feed
+#define ASCII_CR '\r'  //!< Carriage return
+#define ASCII_DC2 18   //!< Device control 2
+#define ASCII_ESC 27   //!< Escape
+#define ASCII_FS 28    //!< Field separator
+#define ASCII_GS 29    //!< Group separator
+
+void printer_writeBytes(const char a, const char b)
+{
+	print_char(a);
+	print_char(b);
+}
+
+void printer_test()
+{
+	printer_writeBytes(ASCII_DC2, 'T');
+}
+
+//打印3位整数,可选是否加回车
+void print_num(u8 n,u8 enter)
+{
+	u8 j;
+	
+	j=n/100+0x30;
+	print_char(j);
+	j=(n%100)/10+0x30;
+	print_char(j);
+	j=n%10+0x30;
+	print_char(j);
+	
+	if(enter==1)print_char(0x0d);//回车
+	
+}
+
+//打印电压值 3位整数/100 V
+void print_voltage(u16 n)
+{
+	u8 j;
+	
+	j=n/100+0x30;
+	print_char(j);
+	print_char(0x2E);	//.
+	j=(n%100)/10+0x30;
+	print_char(j);
+	j=n%10+0x30;
+	print_char(j);
+	print_char(0x56);	//V
+	
+	print_char(0x0d);	//回车
+	
+}
+
+void print_char(uint16_t Data)
+{
+	//	while(USART_GetFlagStatus(USART3,USART_FLAG_TC)==0);
+    USART_SendData(USART3,Data);	
+    while(USART_GetFlagStatus(USART3, USART_FLAG_TC)==0);
+	//  delay1ms();
+	 //delay1ms();
+	// delay1ms();
+    USART_ClearFlag(USART3, USART_FLAG_TC);
+}
+
+void printer_str(const char *str)
+{
+	u8 i,j;
+	j=strlen(str);
+	for(i=0;i<j;i++)
+	{
+		print_char(str[i]);
+		delay_ms(10);
+	}	
+}
 
 void beep_result(u8 mode)
 {
@@ -238,8 +324,6 @@ int main(void)
 	u8 i;  //just for index
 	char temp_str[100];
 
-
-
     SystemInit();
     RCC_Configuration1();                //STM32时钟初始化
     NVIC_Configuration();                //中断向量表设置
@@ -247,11 +331,10 @@ int main(void)
     Timer2_Configuration();				 //控制buzzer用
     USART_Configuration();  			 //USART1配置
 	
+	delay_ms(1000);
+
 	Usart1_send_str(str_poweron);
 	Usart1_send_str(str_init_ok);
-
-	PM51_START_ON;
-	change_chan(0);	
 
 	while(1)
 	{
@@ -267,6 +350,7 @@ int main(void)
 			
 		beep_result(0);	
 		Usart1_send_str(str_start);
+		printer_str(str_start);
 		USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);//禁止接收中断
 			
 ////////////////////////////////////////////////////////////////////////////
@@ -276,6 +360,7 @@ int main(void)
 			change_chan(i);
 			sprintf(temp_str, "%s%3d", str_go_chan, i);
 			Usart1_send_str(temp_str);
+			printer_str(temp_str);
 			
 			delay_ms(100);
 
@@ -287,18 +372,21 @@ int main(void)
 			while (1 == PM51_BUSY)
 			{
 				Usart1_send_str(str_pm51_busy);
+				printer_str(str_pm51_busy);
 				delay_ms(100);
 			}
 			
 			if (1 == PM51_OK)
 			{
 				Usart1_send_str(str_pm51_ok);
+				printer_str(str_pm51_ok);
 				beep_result(1);
 			}
 			
 			if (1 == PM51_FAIL)
 			{
 				Usart1_send_str(str_pm51_fail);
+				printer_str(str_pm51_fail);
 				beep_result(2);
 			}
 		}

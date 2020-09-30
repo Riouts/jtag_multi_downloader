@@ -9,6 +9,7 @@
 //GPIOA
 #define RCLK_PIN	 			GPIO_Pin_8					
 #define BEEP_PIN	 			GPIO_Pin_11
+#define PRT_DTR_PIN		 	GPIO_Pin_7
 
 //GPIOB
 #define DATA_PIN 				GPIO_Pin_15
@@ -161,6 +162,11 @@ void GPIO_Configuration(void)
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  GPIO_InitStructure.GPIO_Pin = PRT_DTR_PIN;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
 	                                                                                 
   GPIO_InitStructure.GPIO_Pin = DATA_PIN | SRCLK_PIN | PM51_START_PIN;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
@@ -252,7 +258,7 @@ void GPIO_Configuration(void)
 */
   
 
-	
+	PM51_START_ON;
 }
 /********************************************************************************/
 void NVIC_Configuration(void)
