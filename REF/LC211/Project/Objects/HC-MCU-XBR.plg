@@ -1,0 +1,37 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Project:</h2>
+d:\cccc2020\CODE\jtag_multi_downloader\REF\LC211\Project\HC-MCU-XBR.uvproj
+Project File Date:  07/20/2020
+
+<h2>Output:</h2>
+Build target 'Target 1'
+compiling HC-MCU-XBR.c...
+linking...
+*** WARNING L15: MULTIPLE CALL TO SEGMENT
+    SEGMENT: ?PR?_FLASH_READARR?HC_MCU_XBR
+    CALLER1: ?C_C51STARTUP
+    CALLER2: ?PR?UART1_RPT?HC_MCU_XBR
+Program Size: data=119.0 xdata=59 code=3608
+creating hex file from ".\Objects\HC-MCU-XBR"...
+".\Objects\HC-MCU-XBR" - 0 Error(s), 1 Warning(s).
+Build target 'Target 1'
+linking...
+*** WARNING L15: MULTIPLE CALL TO SEGMENT
+    SEGMENT: ?PR?_FLASH_READARR?HC_MCU_XBR
+    CALLER1: ?C_C51STARTUP
+    CALLER2: ?PR?UART1_RPT?HC_MCU_XBR
+Program Size: data=119.0 xdata=59 code=3608
+creating hex file from ".\Objects\HC-MCU-XBR"...
+".\Objects\HC-MCU-XBR" - 0 Error(s), 1 Warning(s).
+Build target 'Target 1'
+linking...
+*** WARNING L15: MULTIPLE CALL TO SEGMENT
+    SEGMENT: ?PR?_FLASH_READARR?HC_MCU_XBR
+    CALLER1: ?C_C51STARTUP
+    CALLER2: ?PR?UART1_RPT?HC_MCU_XBR
+Program Size: data=119.0 xdata=59 code=3608
+creating hex file from ".\Objects\HC-MCU-XBR"...
+".\Objects\HC-MCU-XBR" - 0 Error(s), 1 Warning(s).

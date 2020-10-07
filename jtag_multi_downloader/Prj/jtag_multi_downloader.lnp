@@ -1,0 +1,5 @@
+--cpu Cortex-M3 "delay.o" "iwdg.o" "led.o" "main.o" "system.o" "timer.o" "adc.o" "exit.o" "core_cm3.o" "system_stm32f10x.o" "stm32f10x_wwdg.o" "misc.o" "stm32f10x_bkp.o" "stm32f10x_dbgmcu.o" "stm32f10x_exti.o" "stm32f10x_flash.o" "stm32f10x_gpio.o" "stm32f10x_i2c.o" "stm32f10x_iwdg.o" "stm32f10x_rcc.o" "stm32f10x_sdio.o" "stm32f10x_tim.o" "stm32f10x_usart.o" "stm32f10x_pwr.o" "stm32f10x_adc.o" ".\startup_stm32f10x_md_vl.o" 
+--strict --scatter "jtag_multi_downloader.sct" 
+--summary_stderr --info summarysizes --map --xref --callgraph --symbols 
+--info sizes --info totals --info unused --info veneers 
+ --list ".\jtag_multi_downloader.map" -o jtag_multi_downloader.axf
