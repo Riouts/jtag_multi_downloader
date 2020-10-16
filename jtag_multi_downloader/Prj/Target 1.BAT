@@ -1,4 +1,4 @@
-SET PATH=C:\Keil\ARM\ARMCC\bin\;D:\IntelSWTools\compilers_and_libraries_2018.3.210\windows\mpi\intel64\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\Users\phosense\AppData\Local\Microsoft\WindowsApps;D:\MentorGraphics\PADSVX.2.5\SDD_HOME\CAMCAD;d:\cccc2020\TOOL\Git\bin\;d:\cccc2020\TOOL\OpenSSH-Win64\;d:\cccc2020\TOOL\VSCode-win32-x64-1.45.1\;
+SET PATH=C:\Keil\ARM\ARMCC\bin\;D:\IntelSWTools\compilers_and_libraries_2018.3.210\windows\mpi\intel64\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\Users\phosense\AppData\Local\Microsoft\WindowsApps;D:\MentorGraphics\PADSVX.2.5\SDD_HOME\CAMCAD;d:\cccc2020\TOOL\Git\bin\;d:\cccc2020\TOOL\OpenSSH-Win64\;d:\cccc2020\TOOL\VSCode-win32-x64-1.45.1\
 SET CPU_TYPE=STM32F103C8
 SET CPU_VENDOR=STMicroelectronics
 SET UV2_TARGET=Target 1

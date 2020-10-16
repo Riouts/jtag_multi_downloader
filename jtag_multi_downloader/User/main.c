@@ -40,7 +40,7 @@ void print_char(uint16_t Data);//热敏打印机打印一个字节ascii
 void print_num(u8 n,u8 enter);//热敏打印机打印3位整数
 void print_voltage(u16 n);//热敏打印机打印打印电压
 void printer_str(const char *str);//热敏打印机打印字串
-void printer_test();
+void printer_test(void);
 void printer_writeBytes(const char a, const char b);
 /*--------------------------------------------------------------------*/
 
@@ -52,7 +52,7 @@ const char str_trigger[]={"触发"};
 const char str_go_chan[]={"切换"};
 const char str_pm51_busy[]={"."};
 const char str_pm51_ok[]={"正常"};
-const char str_pm51_fail[]={"失效"};
+const char str_pm51_fail[]={"失败     "};
 
 #define ASCII_TAB '\t' //!< Horizontal tab
 #define ASCII_LF '\n'  //!< Line feed
@@ -350,17 +350,19 @@ int main(void)
 			
 		beep_result(0);	
 		Usart1_send_str(str_start);
-		printer_str(str_start);
 		USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);//禁止接收中断
 			
 ////////////////////////////////////////////////////////////////////////////
-		
+		printer_str("\r\n");
+		printer_str("\r\n");
+		printer_str("\r\n");
+		printer_str(str_start);
+		printer_str("\r\n");
+		printer_str("\r\n");
+
 		for(i=0;i<24;i++)
 		{
 			change_chan(i);
-			sprintf(temp_str, "%s%3d", str_go_chan, i);
-			Usart1_send_str(temp_str);
-			printer_str(temp_str);
 			
 			delay_ms(100);
 
@@ -372,24 +374,32 @@ int main(void)
 			while (1 == PM51_BUSY)
 			{
 				Usart1_send_str(str_pm51_busy);
-				printer_str(str_pm51_busy);
+				//printer_str(str_pm51_busy);
 				delay_ms(100);
 			}
 			
 			if (1 == PM51_OK)
 			{
-				Usart1_send_str(str_pm51_ok);
-				printer_str(str_pm51_ok);
+				//Usart1_send_str(str_pm51_ok);
+				//printer_str(str_pm51_ok);
 				beep_result(1);
 			}
 			
 			if (1 == PM51_FAIL)
 			{
+				sprintf(temp_str, "%3d", i);
+				Usart1_send_str(temp_str);
+				printer_str(temp_str);				
 				Usart1_send_str(str_pm51_fail);
 				printer_str(str_pm51_fail);
+				Usart1_send_str("\r\n");
+				printer_str("\r\n");
 				beep_result(2);
 			}
 		}
+		printer_str("\r\n");
+		printer_str("\r\n");
+		printer_str("\r\n");
 		
 	}
 

@@ -105,7 +105,7 @@ I (..\User\exit.h)(0x554DABA4)
 I (..\User\delay.h)(0x5BB972E4)
 I (..\User\ds18b20.h)(0x5BB9A6AA)
 I (C:\Keil\ARM\ARMCC\bin\..\include\stdlib.h)(0x50F96150)
-F (..\User\main.c)(0x5F74506E)(-c --cpu Cortex-M3 -g -O0 --apcs=interwork -I..\User -I..\Lib\CMSIS\CM3\CoreSupport -I..\Lib\CMSIS\CM3\DeviceSupport\ST\STM32F10x -I..\Lib\STM32F10x_StdPeriph_Driver\inc -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F10x -DSTM32F10X_MD_VL -DUSE_STDPERIPH_DRIVER -o "main.o" --omf_browse "main.crf" --depend "main.d")
+F (..\User\main.c)(0x5F8944CE)(-c --cpu Cortex-M3 -g -O0 --apcs=interwork -I..\User -I..\Lib\CMSIS\CM3\CoreSupport -I..\Lib\CMSIS\CM3\DeviceSupport\ST\STM32F10x -I..\Lib\STM32F10x_StdPeriph_Driver\inc -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F10x -DSTM32F10X_MD_VL -DUSE_STDPERIPH_DRIVER -o "main.o" --omf_browse "main.crf" --depend "main.d")
 I (..\User\main.h)(0x5F743521)
 I (C:\Keil\ARM\ARMCC\bin\..\include\stdio.h)(0x50F96150)
 I (C:\Keil\ARM\ARMCC\bin\..\include\string.h)(0x50F96150)
