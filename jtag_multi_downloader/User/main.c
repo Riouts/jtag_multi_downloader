@@ -371,21 +371,23 @@ int main(void)
 			PM51_START_ON;
 			delay_ms(500);
 
-			while (1 == PM51_BUSY)
+			while (0 == PM51_BUSY)
 			{
 				Usart1_send_str(str_pm51_busy);
 				//printer_str(str_pm51_busy);
 				delay_ms(100);
 			}
 			
-			if (1 == PM51_OK)
+			delay_ms(100);
+			
+			if (0 == PM51_OK)
 			{
 				//Usart1_send_str(str_pm51_ok);
 				//printer_str(str_pm51_ok);
 				beep_result(1);
 			}
 			
-			if (1 == PM51_FAIL)
+			if (0 == PM51_FAIL)
 			{
 				sprintf(temp_str, "%3d", i);
 				Usart1_send_str(temp_str);
